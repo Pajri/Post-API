@@ -88,7 +88,7 @@ We are going to add connection string configuration  at **Startup.cs**
 16. Build the project. Make sure it successfully built.
 
 
-### Create Controller
+#### Create Controller
 17. Remove the generated **ValuesController.cs** if any as we will not need it.<br/>
 ![Create Controller](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/12%20Create%20Controller.png?raw=true)
 
@@ -126,7 +126,7 @@ We are going to add connection string configuration  at **Startup.cs**
 	![Create Controller](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/17%20Create%20Controller.png?raw=true) <br/>
 	
 
-### Add Create Post Method
+#### Add Create Post Method
 
 24. We will use the generated method  **public void Post([FromBody]string value)** decorated with [HttpPost] attribute <br/>
 ![Add Create Post Method](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/19%20Create%20Post%20Method.png?raw=true)<br/>
@@ -161,3 +161,149 @@ To test the api, you can use tools like Postman ([https://www.getpostman.com/dow
 	The response should be like this 
 	
 	![Add Create Post Method](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/23%20Create%20Post%20Method.png?raw=true)<br/>
+	
+	
+#### Add Get Posts Method
+27. We are going to use method **public IEnumerable<string> Get()** to create method to retrieve all posts and method **public string Get(int id)**  to create method to retrieve one post.
+	
+28. Update method **IEnumerable<string> Get()** using the following codes : 
+	```c#
+	public ActionResult<IEnumerable<Posts>> Get()
+	{
+        	return _context.Posts;
+	}
+	```
+	
+	![Add Get Posts Method](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/24%20Get%20Post%20Method.png?raw=true)
+	
+	The method will return all post data. It will be in array of json object format. We will see what the json will be when we test the method.
+	
+29. Update method method public string Get(int id) using the following codes :
+	```c#
+	public ActionResult<Posts> Get(string id)
+	{
+	    Guid postGuid = new Guid();
+	    if (!Guid.TryParse(id,out postGuid)) return BadRequest();
+
+	    var postItem = _context.Posts.Where(p => p.Id == postGuid);
+	    if (postItem.Count() == 0) return NotFound();
+	    return postItem.SingleOrDefault();
+	}
+	```
+	
+	![Add Get Posts Method](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/25%20Get%20Post%20Method.png?raw=true)
+	
+	This method will accept id as parameter. The expected parameter is guid. If not guid, this method will return bad request. If it’s guid, the method will return post item.  
+	
+30. Build and run the project.
+
+31. Now we are going to post both methods.<br/>
+	**Testing Get Posts method (without parameter)** <br/>
+	Details of the request :
+	```
+	Url 		: <hostname>/api/post
+	Method 		: GET
+	Content-Type 	: application/json
+	```
+	The result should be like this. I’ve added few more items before. <br/>
+	![Add Get Posts Method](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/26%20Get%20Post%20Method.png?raw=true)
+	
+32. **Testing Get Posts method (with parameter)**<br/>
+	Details of the request:
+	```
+	Url 		: <hostname>/api/post/<post id>
+	Method 		: GET
+	Content-Type 	: application/json
+	```
+	
+	The response should be like this <br/>
+	![Add Get Posts Method](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/27%20Get%20Post%20Method.png?raw=true)
+	
+	
+#### Create Method to Update Post
+
+33. To create method to update post, we will use method public void Put(int id, [FromBody]string value). This method uses HTTP PUT. The response is 204 (No Content). According to the HTTP specification, a PUT request requires the client to send the entire updated entity, not just the changes. To support partial updates, use HTTP PATCH.
+34. Update method void Put(int id, [FromBody]string value) using this following code :
+    ```c#
+    public ActionResult Put(string id, [FromBody]Posts postItem)
+    {
+        Guid postGuid = new Guid();
+        if (!Guid.TryParse(id, out postGuid)) return BadRequest();
+        if (postGuid != postItem.Id) return BadRequest();
+        
+        _context.Entry(postItem).State = EntityState.Modified;
+        _context.SaveChanges();
+
+        return NoContent();
+    }
+    ```
+    ![Create Method to Update Post
+](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/27%20Update%20Post%20Method.png?raw=true)
+
+35.	Build the project.
+36.	Now we test the method.
+
+	Details of the request:
+	```
+	Url 		: <hostname>/api/post/e17a4da3-5cc3-4da7-a567-3ece2b3e4962
+	Method 		: PUT
+	Content-Type 	: application/json
+	Body 		: {
+			     "id": "e17a4da3-5cc3-4da7-a567-3ece2b3e4962",
+    			     "title": "Emergency Exit is Gone !!!!",
+    			     "content": "Apparently no one where it goes.”
+			  }
+	```
+	
+	![Create Method to Update Post
+](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/28%20Update%20Post%20Method.png?raw=true)
+
+	If you check again using get post method, you will see that the content has been changed
+
+	![Create Method to Update Post
+](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/29%20Update%20Post%20Method.png?raw=true)
+
+
+### Create Method to Delete Post
+37. We use HTTP DELETE to delete post. It will return 204 No Content. 
+We use method `public void Delete(int id)` to create delete post method.
+
+38. Update method public void Delete(int id) using the following code :
+	```c#
+	public ActionResult Delete(string id)
+	{
+	    Guid postGuid = new Guid();
+	    if (!Guid.TryParse(id, out postGuid)) return BadRequest();
+
+	    var queryPostItem = _context.Posts.Where(p => p.Id == postGuid);
+	    if (queryPostItem.Count() == 0) return NotFound()
+	    var postItem = queryPostItem.SingleOrDefault();
+	    _context.Posts.Remove(postItem);
+	    _context.SaveChanges();
+
+	    return NoContent();
+	}
+	```
+	![Create Method to Delete Post
+](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/30%20Delete%20Post%20Method.png?raw=true)
+
+39. Build and run the project
+
+40. Now we test the method. <br/>
+	Details of the request:
+	```
+	Url 		: <hostname>/api/post/e17a4da3-5cc3-4da7-a567-3ece2b3e4962
+	Method		: DELETE
+	Content-Type	: application/json
+
+	```
+	
+	![Create Method to Delete Post
+](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/31%20Delete%20Post%20Method.png?raw=true)
+
+	If you get all post data, you will see that the item does not in the list
+	
+	![Create Method to Delete Post
+](https://github.com/Pajri/Post-API/blob/master/Readme%20Assets/32%20Delete%20Post%20Method.png?raw=true)
+
+
